@@ -3,6 +3,7 @@ package eu.duckrealm.quackclaim.commands;
 import eu.duckrealm.quackclaim.QuackClaim;
 import eu.duckrealm.quackclaim.subcommands.team.buyclaimchunk;
 import eu.duckrealm.quackclaim.subcommands.team.sellclaimchunk;
+import eu.duckrealm.quackclaim.util.QuackConfig;
 import eu.duckrealm.quackclaim.util.Team;
 import eu.duckrealm.quackclaim.util.Teams;
 import eu.duckrealm.quackclaim.util.misc;
@@ -309,7 +310,12 @@ public class TeamCommand implements CommandExecutor, TabCompleter {
 
             case "buyChunk" -> {
                 if(!QuackClaim.economyEnabled) {
-                    player.sendMessage(Component.text("No economy registered. Please ask an admin to install one.", NamedTextColor.RED));
+                    player.sendMessage(Component.text("No economy registered. Ask an admin to install one.", NamedTextColor.RED));
+                    return true;
+                }
+
+                if(!QuackConfig.ECOENABLED) {
+                    player.sendMessage(Component.text("Economy is disabled.", NamedTextColor.RED));
                     return true;
                 }
 
@@ -340,10 +346,14 @@ public class TeamCommand implements CommandExecutor, TabCompleter {
 
             case "sellChunk" -> {
                 if(!QuackClaim.economyEnabled) {
-                    player.sendMessage(Component.text("No economy registered. Please ask an admin to install one.", NamedTextColor.RED));
+                    player.sendMessage(Component.text("No economy registered. Ask an admin to install one.", NamedTextColor.RED));
                     return true;
                 }
 
+                if(!QuackConfig.ECOENABLED) {
+                    player.sendMessage(Component.text("Economy is disabled.", NamedTextColor.RED));
+                    return true;
+                }
                 if(!Teams.isPlayerInTeam(player.getUniqueId())) {
                     player.sendMessage(Component.text("You aren't in a team yet", NamedTextColor.RED));
                     return true;
@@ -372,7 +382,12 @@ public class TeamCommand implements CommandExecutor, TabCompleter {
 
             case "deposit" -> {
                 if(!QuackClaim.economyEnabled) {
-                    player.sendMessage(Component.text("No economy registered. Please ask an admin to install one.", NamedTextColor.RED));
+                    player.sendMessage(Component.text("No economy registered. Ask an admin to install one.", NamedTextColor.RED));
+                    return true;
+                }
+
+                if(!QuackConfig.ECOENABLED) {
+                    player.sendMessage(Component.text("Economy is disabled.", NamedTextColor.RED));
                     return true;
                 }
 
@@ -409,7 +424,12 @@ public class TeamCommand implements CommandExecutor, TabCompleter {
 
             case "withdraw" -> {
                 if(!QuackClaim.economyEnabled) {
-                    player.sendMessage(Component.text("No economy registered. Please ask an admin to install one.", NamedTextColor.RED));
+                    player.sendMessage(Component.text("No economy registered. Ask an admin to install one.", NamedTextColor.RED));
+                    return true;
+                }
+
+                if(!QuackConfig.ECOENABLED) {
+                    player.sendMessage(Component.text("Economy is disabled.", NamedTextColor.RED));
                     return true;
                 }
 
@@ -594,9 +614,9 @@ public class TeamCommand implements CommandExecutor, TabCompleter {
                 String[] subArray =  Arrays.copyOfRange(args, 2, args.length);
                 String description = String.join(" ", subArray).trim();
 
-                if (description.length() > QuackClaim.MAXDESCLENGTH) {
+                if (description.length() > QuackConfig.MAXDESCLENGTH) {
                     player.sendMessage(Component.text("Your description is longer than ", NamedTextColor.RED)
-                            .append(Component.text(QuackClaim.MAXDESCLENGTH, NamedTextColor.GREEN)
+                            .append(Component.text(QuackConfig.MAXDESCLENGTH, NamedTextColor.GREEN)
                                     .append(Component.text(" characters!", NamedTextColor.RED))));
                     return true;
                 }
@@ -610,9 +630,9 @@ public class TeamCommand implements CommandExecutor, TabCompleter {
                 String[] subArray =  Arrays.copyOfRange(args, 2, args.length);
                 String name = String.join(" ", subArray).trim();
 
-                if (name.length() > QuackClaim.MAXNAMELENGTH) {
+                if (name.length() > QuackConfig.MAXNAMELENGTH) {
                     player.sendMessage(Component.text("Your name is longer than ", NamedTextColor.RED)
-                            .append(Component.text(QuackClaim.MAXNAMELENGTH, NamedTextColor.GREEN)
+                            .append(Component.text(QuackConfig.MAXNAMELENGTH, NamedTextColor.GREEN)
                                     .append(Component.text(" characters!", NamedTextColor.RED))));
                     return true;
                 }

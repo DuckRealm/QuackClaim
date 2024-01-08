@@ -890,7 +890,7 @@ public class ColorConfig {
         put("minecraft:warped_trapdoor", 0x307A72);
         put("minecraft:warped_wall_sign", 0x2B6963);
         put("minecraft:warped_wart_block", 0x177879);
-        put("minecraft:water", 0x0000FF);
+        put("minecraft:water", 0x001363);
         put("minecraft:water_cauldron", 0x4A494A);
         put("minecraft:waxed_copper_block", 0xC06C50);
         put("minecraft:waxed_cut_copper", 0xBF6B51);

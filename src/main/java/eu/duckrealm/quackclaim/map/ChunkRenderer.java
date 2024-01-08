@@ -9,15 +9,11 @@ import eu.duckrealm.quackclaim.QuackClaim;
 import eu.duckrealm.quackclaim.util.ChunkLoadAnalyzer;
 import eu.duckrealm.quackclaim.util.Team;
 import eu.duckrealm.quackclaim.util.Teams;
-import net.kyori.adventure.text.Component;
-import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.joml.Vector2d;
-
-import static java.util.Objects.isNull;
 
 public class ChunkRenderer {
 
@@ -53,7 +49,7 @@ public class ChunkRenderer {
         chunks = new ArrayList<>();
         return tiles;
     }
-    double lastFactor = 0.0;
+    
     private MapTile renderChunk(Chunk chunk) {
 
         long ucid = chunk.getChunkKey() + chunk.getWorld().getName().hashCode();
@@ -61,25 +57,75 @@ public class ChunkRenderer {
             if(chunkHashes.get(ucid) == chunk.hashCode()) return null;
         }
 
-        BufferedImage image = new BufferedImage(16, 16, BufferedImage.TYPE_4BYTE_ABGR);
+        BufferedImage image = new BufferedImage(16, 16, BufferedImage.TYPE_INT_RGB);
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
                 Location location = new Location(chunk.getWorld(), x + chunk.getX() * 16, 0d, z + chunk.getZ() * 16);
                 Block highestBlock = location.getWorld().getHighestBlockAt((int) location.x(), (int) location.z());
+                Block highestBlockTop;
+                Block highestBlockBottom;
+                Block highestBlockRight;
+                Block highestBlockLeft;
 
-                double factor = (double) (highestBlock.getY() + Math.abs(chunk.getWorld().getMinHeight())) / (chunk.getWorld().getMaxHeight() + Math.abs(chunk.getWorld().getMinHeight()));
-                factor *= 255;
-
-                if(factor != lastFactor) {
-                    Bukkit.broadcast(Component.text(factor));
-                    lastFactor = factor;
+                if(x < 15) {
+                    highestBlockTop = location.getWorld().getHighestBlockAt((int) location.x() + 1, (int) location.z());
+                } else {
+                    highestBlockTop = highestBlock;
                 }
 
-                int alpha = (int) Math.round(factor) << 24;
+                if(x > 0) {
+                    highestBlockBottom = location.getWorld().getHighestBlockAt((int) location.x() - 1, (int) location.z());
+                } else {
+                    highestBlockBottom = highestBlock;
+                }
 
-                int blockColor = alpha | getBlockColor(highestBlock.getType());
+                if(z < 15) {
+                    highestBlockRight = location.getWorld().getHighestBlockAt((int) location.x(), (int) location.z() + 1);
+                } else {
+                    highestBlockRight = highestBlock;
+                }
 
-                image.setRGB(x, z, blockColor);
+                if(z > 0) {
+                    highestBlockLeft = location.getWorld().getHighestBlockAt((int) location.x(), (int) location.z() - 1);
+                } else {
+                    highestBlockLeft = highestBlock;
+                }
+
+                int top = highestBlockTop.getY();
+                int bottom = highestBlockBottom.getY();
+                int left = highestBlockLeft.getY();
+                int right = highestBlockRight.getY();
+                int current = highestBlock.getY();
+
+                int depth = 0;
+                //if (isWater(highestBlock.getType())) {
+                //    while (isWater(highestBlock.getType())) {
+                //        location.setY(location.getY() - 1);
+                //        depth++;
+                //    }
+                //}
+                //location.setY(location.getY() + depth);
+
+                Color blockColor = getBlockColor(highestBlock.getType());
+
+                double topShadeFactor = Math.min(Math.max(0, (double) (current - top) / 10.0), 0.5);
+                double bottomShadeFactor = Math.min(Math.max(0, (double) (bottom - current) / 10.0), 0.5);
+                double leftShadeFactor = Math.min(Math.max(0, (double) (current - left) / 10.0), 0.5);
+                double rightShadeFactor = Math.min(Math.max(0, (double) (right - current) / 10.0), 0.5);
+
+                int shadedRed = (int) (blockColor.getRed() - (topShadeFactor + leftShadeFactor) * 64
+                        + (bottomShadeFactor + rightShadeFactor) * 64);
+                int shadedGreen = (int) (blockColor.getGreen() - (topShadeFactor + leftShadeFactor) * 64
+                        + (bottomShadeFactor + rightShadeFactor) * 64);
+                int shadedBlue = (int) (blockColor.getBlue() - (topShadeFactor + leftShadeFactor) * 64
+                        + (bottomShadeFactor + rightShadeFactor) * 64);
+
+                shadedRed = Math.min(255, Math.max(0, shadedRed));
+                shadedGreen = Math.min(255, Math.max(0, shadedGreen));
+                shadedBlue = Math.min(255, Math.max(0, shadedBlue));
+
+                image.setRGB(x, z, new Color(shadedRed, shadedGreen, shadedBlue).getRGB());
+
             }
         }
 
@@ -92,8 +138,14 @@ public class ChunkRenderer {
         QuackClaim.tileInfo.put(ucid, new TileInfo(chunk.getInhabitedTime(), team.getTeamID(), score, chunkPos, chunk.getWorld().getName()));
         return new MapTile(image, score, chunk.getInhabitedTime(), chunkPos, chunk.getWorld().getName());
     }
-
-    private int getBlockColor(Material material) {
-        return ColorConfig.BLOCK_COLORS.getOrDefault(material.getKey().asString(), 0x000000);
+    private boolean isWater(Material material) {
+        //flags blocks as water when they are effectively water
+        return material.equals(Material.WATER);
+        //return material.equals(Material.WATER) || ColorConfig.BLOCKS_WATER.contains(material.getKey().asString());
+    }
+    private Color getBlockColor(Material material) {
+        String block = material.getKey().asString();
+        if(ColorConfig.BLOCKS_WATER.contains(block)) block = "minecraft:water";
+        return new Color(ColorConfig.BLOCK_COLORS.getOrDefault(block, 0x000000));
     }
 }

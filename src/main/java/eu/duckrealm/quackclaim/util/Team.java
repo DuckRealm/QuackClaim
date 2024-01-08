@@ -114,11 +114,22 @@ public class Team {
         List<String> stringListBanned = new ArrayList<>();
 
         bannedPlayers.forEach((UUID uuid) -> {
-            stringListBanned.add(Objects.requireNonNull(Bukkit.getPlayer(uuid)).getName());
+            stringListBanned.add(Objects.requireNonNull(Bukkit.getOfflinePlayer(uuid)).getName());
         });
 
         return stringListBanned;
     }
+
+    public List<String> getTrustedNames() {
+        List<String> stringListTrusted = new ArrayList<>();
+
+        bannedPlayers.forEach((UUID uuid) -> {
+            stringListTrusted.add(Objects.requireNonNull(Bukkit.getOfflinePlayer(uuid)).getName());
+        });
+
+        return stringListTrusted;
+    }
+
 
     public void addClaimedChunk() {
         claimedChunks++;
@@ -252,7 +263,7 @@ public class Team {
                 .append(Component.text("Team ID: ", NamedTextColor.WHITE))
                 .append(Component.text(getTeamID().toString())
                         .append(Component.newline())
-                        .append(Component.text(getTrustedString().toString())));
+                        .append(Component.text(getTrustedNames().toString().replaceAll(",", "\n\t"))));
     }
 
     public boolean getMemberPermission(String permission) {

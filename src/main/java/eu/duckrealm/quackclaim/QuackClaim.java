@@ -4,8 +4,11 @@ import com.sun.net.httpserver.HttpExchange;
 import eu.duckrealm.quackclaim.commands.*;
 import eu.duckrealm.quackclaim.listener.*;
 import eu.duckrealm.quackclaim.map.ChunkRenderer;
+import eu.duckrealm.quackclaim.map.MapTile;
+import eu.duckrealm.quackclaim.map.QRendererStats;
 import eu.duckrealm.quackclaim.map.TileInfo;
 import eu.duckrealm.quackclaim.util.Configuration;
+import eu.duckrealm.quackclaim.util.QuackConfig;
 import eu.duckrealm.quackclaim.util.Team;
 import eu.duckrealm.quackclaim.util.Teams;
 import eu.duckrealm.quackclaim.webserver.WebServer;
@@ -15,9 +18,11 @@ import org.bukkit.Chunk;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.*;
@@ -27,14 +32,16 @@ public final class QuackClaim extends JavaPlugin {
     public static final Team SERVERTEAM = new Team(new UUID(0,0), new UUID(0, 0));
     private final String version = getPluginMeta().getVersion();
     public static QuackClaim instance;
-    public static int MAXDESCLENGTH = 200;
-    public static int MAXNAMELENGTH = 20;
     public static Map<Long, TileInfo> tileInfo = new HashMap<>();
     public static Economy economy;
     public static boolean economyEnabled = false;
     public static ChunkRenderer chunkRenderer = new ChunkRenderer();
     public static HashMap<Long, UUID> claims = new HashMap<>();
     public static List<UUID> ignoringClaims = new ArrayList<>();
+
+    byte[] htmlBytes;
+    byte[] pixiBytes;
+    byte[] logoBytes;
 
     @Override
     public void onEnable() {
@@ -49,6 +56,27 @@ public final class QuackClaim extends JavaPlugin {
             getLogger().info(String.format("Economy provider found. Using: %s", economy.getName()));
         } else {
             getLogger().info("Economy not found. Unable to buy claims");
+        }
+
+
+        getLogger().info("Insuring correct directory structure..");
+        File plugindir = getDataFolder();
+        File datadir = new File(plugindir.getAbsolutePath() + File.separator + "data");
+        File tilesdir = new File(plugindir.getAbsolutePath() + File.separator + "tiles");
+        File configdir = new File(plugindir.getAbsolutePath() + File.separator + "config");
+        if(!plugindir.exists()) plugindir.mkdirs();
+        if(!datadir.exists()) datadir.mkdir();
+        if(!tilesdir.exists()) tilesdir.mkdir();
+        if(!configdir.exists()) configdir.mkdir();
+
+        getLogger().info("Loading resources...");
+        QuackConfig.initialize();
+        try {
+            htmlBytes = getResource("index.min.html").readAllBytes();
+            pixiBytes = getResource("pixi.js").readAllBytes();
+            logoBytes = getResource("quackclaim-logo.png").readAllBytes();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
 
         getLogger().info("Registering events...");
@@ -108,9 +136,41 @@ public final class QuackClaim extends JavaPlugin {
             claims.put(Long.parseLong(key), teamID);
         }
 
+        if(QuackConfig.WEBENABLED) LaunchWebServer();
+
+        getLogger().info("");
+        getLogger().info("******************************************");
+    }
+
+    private void LaunchWebServer() {
         try {
             WebServer server = new WebServer();
+
             server.onRequest("/", (HttpExchange exchange) -> {
+                exchange.getResponseHeaders().set("Content-Type", "text/html");
+                exchange.sendResponseHeaders(200, htmlBytes.length);
+                OutputStream os = exchange.getResponseBody();
+                os.write(htmlBytes);
+                os.close();
+            });
+
+            server.onRequest("/pixi.js", (HttpExchange exchange) -> {
+                exchange.getResponseHeaders().set("Content-Type", "application/javascript");
+                exchange.sendResponseHeaders(200, pixiBytes.length);
+                OutputStream os = exchange.getResponseBody();
+                os.write(pixiBytes);
+                os.close();
+            });
+
+            server.onRequest("/quackclaim-logo.png", (HttpExchange exchange) -> {
+                exchange.getResponseHeaders().set("Content-Type", "image/png");
+                exchange.sendResponseHeaders(200, logoBytes.length);
+                OutputStream os = exchange.getResponseBody();
+                os.write(logoBytes);
+                os.close();
+            });
+
+            server.onRequest("/version", (HttpExchange exchange) -> {
                 String response = String.format("Running QuackClaim v %s",version);
                 exchange.sendResponseHeaders(200, response.length());
                 OutputStream os = exchange.getResponseBody();
@@ -119,7 +179,6 @@ public final class QuackClaim extends JavaPlugin {
             });
 
             server.onRequest("/tile", (HttpExchange exchange) -> {
-                exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
                 Map<String, String> query = WebServer.parseQueryString(exchange.getRequestURI().getQuery());
                 if(!query.containsKey("x") || !query.containsKey("z") || !query.containsKey("dim")) {
                     String response = "400 Bad Request";
@@ -148,7 +207,6 @@ public final class QuackClaim extends JavaPlugin {
 
             server.onRequest("/tile/info", (HttpExchange exchange) -> {
                 Map<String, String> query = WebServer.parseQueryString(exchange.getRequestURI().getQuery());
-                exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
                 if(!query.containsKey("x") || !query.containsKey("z") || !query.containsKey("dim")) {
                     String response = "400 Bad Request";
                     exchange.sendResponseHeaders(400, response.length());
@@ -174,7 +232,7 @@ public final class QuackClaim extends JavaPlugin {
 
             });
 
-            server.onRequest("/tile/list", (HttpExchange exchange) -> {
+                server.onRequest("/tile/list", (HttpExchange exchange) -> {
                 AtomicReference<String> list = new AtomicReference<>("");
                 tileInfo.forEach((Long key, TileInfo info) -> {
                     list.set(list + (String.format("dim=%s&z=%s&x=%s\n", info.getDim(), info.getZ(), info.getX())));
@@ -189,11 +247,6 @@ public final class QuackClaim extends JavaPlugin {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
-
-
-        getLogger().info("");
-        getLogger().info("******************************************");
     }
 
     @Override

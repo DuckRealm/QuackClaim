@@ -1,9 +1,9 @@
 package eu.duckrealm.quackclaim.commands;
 
 import eu.duckrealm.quackclaim.QuackClaim;
+import eu.duckrealm.quackclaim.map.QRendererStats;
 import eu.duckrealm.quackclaim.util.*;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
@@ -139,6 +139,41 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
                         .append(Component.text(ChunkLoadAnalyzer.getChunkScore(player.getChunk()), NamedTextColor.GREEN)));
             }
 
+            case "chunkRenderTime" -> {
+                player.sendMessage(Component.text("= = = Render Stats = = =", NamedTextColor.GOLD)
+                        .append(Component.newline())
+                        .append(Component.text("Maximum Time: ", NamedTextColor.GRAY))
+                        .append(Component.text(QRendererStats.MaxTime, NamedTextColor.GREEN))
+                        .append(Component.text("ms", NamedTextColor.GRAY))
+                        .append(Component.newline())
+                        .append(Component.text("Minimum Time: ", NamedTextColor.GRAY))
+                        .append(Component.text(QRendererStats.MinTime, NamedTextColor.GREEN))
+                        .append(Component.text("ms", NamedTextColor.GRAY))
+                        .append(Component.newline())
+                        .append(Component.text("Average Time: ", NamedTextColor.GRAY))
+                        .append(Component.text(QRendererStats.AverageTime, NamedTextColor.GREEN))
+                        .append(Component.text("ms", NamedTextColor.GRAY))
+                        .append(Component.newline())
+                        .append(Component.text("Chunks rendered: ", NamedTextColor.GRAY))
+                        .append(Component.text(QRendererStats.RenderedChunks, NamedTextColor.GREEN)));
+            }
+
+            case "reload" -> {
+                QuackConfig.initialize();
+                player.sendMessage(Component.text("Reloaded Configs", NamedTextColor.GREEN));
+            }
+
+            case "ignore" -> {
+                if(!QuackClaim.ignoringClaims.contains(player.getUniqueId())) {
+                    QuackClaim.ignoringClaims.add(player.getUniqueId());
+                    player.sendMessage(Component.text("Now ignoring claims.", NamedTextColor.GREEN));
+                    return true;
+                }
+                QuackClaim.ignoringClaims.remove(player.getUniqueId());
+                player.sendMessage(Component.text("No longer ignoring claims.", NamedTextColor.RED));
+                return true;
+            }
+
             default -> player.sendMessage(Component.text("Not a valid option", NamedTextColor.RED));
         }
         return true;
@@ -189,9 +224,9 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
                 String[] subArray =  Arrays.copyOfRange(args, 2, args.length);
                 String description = String.join(" ", subArray).trim();
 
-                if (description.length() > QuackClaim.MAXDESCLENGTH) {
+                if (description.length() > QuackConfig.MAXDESCLENGTH) {
                     player.sendMessage(Component.text("Your description is longer than ", NamedTextColor.RED)
-                            .append(Component.text(QuackClaim.MAXDESCLENGTH, NamedTextColor.GREEN)
+                            .append(Component.text(QuackConfig.MAXDESCLENGTH, NamedTextColor.GREEN)
                                     .append(Component.text(" characters!", NamedTextColor.RED))));
                     return true;
                 }
@@ -205,9 +240,9 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
                 String[] subArray =  Arrays.copyOfRange(args, 2, args.length);
                 String name = String.join(" ", subArray).trim();
 
-                if (name.length() > QuackClaim.MAXNAMELENGTH) {
+                if (name.length() > QuackConfig.MAXNAMELENGTH) {
                     player.sendMessage(Component.text("Your name is longer than ", NamedTextColor.RED)
-                            .append(Component.text(QuackClaim.MAXNAMELENGTH, NamedTextColor.GREEN)
+                            .append(Component.text(QuackConfig.MAXNAMELENGTH, NamedTextColor.GREEN)
                                     .append(Component.text(" characters!", NamedTextColor.RED))));
                     return true;
                 }
@@ -216,16 +251,6 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
                 team.setTeamName(name);
             }
 
-            case "ignore" -> {
-                if(!QuackClaim.ignoringClaims.contains(player.getUniqueId())) {
-                    QuackClaim.ignoringClaims.add(player.getUniqueId());
-                    player.sendMessage(Component.text("Now ignoring claims.", NamedTextColor.GREEN));
-                    return true;
-                }
-                QuackClaim.ignoringClaims.remove(player.getUniqueId());
-                player.sendMessage(Component.text("No longer ignoring claims.", NamedTextColor.RED));
-                return true;
-            }
             default -> player.sendMessage(Component.text("Not a valid option", NamedTextColor.RED));
         }
         return true;
@@ -233,7 +258,7 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         List<String> editOptionsBool = Arrays.stream(new String[] {"pvp", "explosions", "freeToJoin"}).toList();
-        if (args.length == 1) return Arrays.stream(new String[] { "save", "edit", "list", "delete", "chunkPerformance", "resetPlayer" }).toList();
+        if (args.length == 1) return Arrays.stream(new String[] { "save", "edit", "list", "delete", "chunkPerformance", "resetPlayer", "chunkRenderTime", "reload" }).toList();
         switch(args[0]) {
             case "edit" -> {
                 if (args.length > 2 && editOptionsBool.contains(args[1])) return Arrays.stream(new String[] { "on", "off" }).toList();
