@@ -3,6 +3,7 @@ package eu.duckrealm.quackclaim.commands;
 import eu.duckrealm.quackclaim.QuackClaim;
 import eu.duckrealm.quackclaim.subcommands.team.buyclaimchunk;
 import eu.duckrealm.quackclaim.subcommands.team.sellclaimchunk;
+import eu.duckrealm.quackclaim.util.QuackConfig;
 import eu.duckrealm.quackclaim.util.Team;
 import eu.duckrealm.quackclaim.util.Teams;
 import eu.duckrealm.quackclaim.util.misc;
@@ -35,7 +36,10 @@ public class TeamCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         Player player = (Player) commandSender;
-        if(args.length < 1) player.sendMessage(Component.text("Missing action. Use /qt <action>", NamedTextColor.RED));
+        if(args.length < 1) {
+            player.sendMessage(Component.text("Missing action. Use /qt <action>", NamedTextColor.RED));
+            return true;
+        }
         switch (args[0]) {
             case "create" -> {
                 if(Teams.isPlayerInTeam(player.getUniqueId())){
@@ -63,20 +67,31 @@ public class TeamCommand implements CommandExecutor, TabCompleter {
                             .append(team.getTeamComponent()));
                     return true;
                 }
-                Team team = Teams.getTeam(UUID.fromString(args[1]));
+
+                Team team = Teams.getTeamByName(String.join(" ", Arrays.copyOfRange(args, 1, args.length)));
+
+                if(team == null) {
+                    player.sendMessage(Component.text("Team does not exist!", NamedTextColor.RED));
+                    return true;
+                }
+
                 if(team.isPlayerInvited(player.getUniqueId())) {
+
                     if(!team.trustPlayer(player.getUniqueId())) {
-                        player.sendMessage(Component.text("Trusting went wrong"));
+                        player.sendMessage(Component.text("Trusting went wrong", NamedTextColor.RED));
+                        return true;
                     }
+
                     team.uninvitePlayer(player.getUniqueId());
                     Teams.setPlayerInTeam(player.getUniqueId(), team.getTeamID());
-                    player.sendMessage(Component.text(team.isTrusted(player.getUniqueId())));
                     player.sendMessage(Component.text("You are now part of ", NamedTextColor.GRAY)
                             .append(team.getTeamComponent()));
 
                     return true;
                 }
+
                 Teams.putTeam(team);
+
                 player.sendMessage(Component.text("You are not invited!", NamedTextColor.RED));
             }
 
@@ -183,6 +198,8 @@ public class TeamCommand implements CommandExecutor, TabCompleter {
 
                 UUID toDelete = team.getTeamID();
                 for (UUID trusted : team.getTrusted()) {
+                    team.untrustPlayer(trusted);
+                    team.uninvitePlayer(trusted);
                     Teams.removePlayerInTeam(trusted);
                 }
                 Teams.removeTeam(team.getTeamID());
@@ -259,9 +276,9 @@ public class TeamCommand implements CommandExecutor, TabCompleter {
                         .append(Component.text(" wants you to join ", NamedTextColor.GRAY))
                         .append(team.getTeamComponent()));
 
-                playerToInvite.sendMessage(Component.text("Join", NamedTextColor.GREEN).clickEvent(ClickEvent.runCommand(String.format("/qt join %s", team.getTeamID())))
+                playerToInvite.sendMessage(Component.text("Join", NamedTextColor.GREEN).clickEvent(ClickEvent.runCommand(String.format("/qt join %s", team.getTeamName())))
                         .append(Component.text(" | ", NamedTextColor.GOLD)
-                                .append(Component.text("Ignore", NamedTextColor.RED)).clickEvent(ClickEvent.runCommand(String.format("/qt ignore %s", team.getTeamID())))));
+                                .append(Component.text("Ignore", NamedTextColor.RED)).clickEvent(ClickEvent.runCommand(String.format("/qt ignore %s", team.getTeamName())))));
             }
 
             case "ban" -> {
@@ -309,7 +326,12 @@ public class TeamCommand implements CommandExecutor, TabCompleter {
 
             case "buyChunk" -> {
                 if(!QuackClaim.economyEnabled) {
-                    player.sendMessage(Component.text("No economy registered. Please ask an admin to install one.", NamedTextColor.RED));
+                    player.sendMessage(Component.text("No economy registered. Ask an admin to install one.", NamedTextColor.RED));
+                    return true;
+                }
+
+                if(!QuackConfig.ECOENABLED) {
+                    player.sendMessage(Component.text("Economy is disabled.", NamedTextColor.RED));
                     return true;
                 }
 
@@ -340,10 +362,14 @@ public class TeamCommand implements CommandExecutor, TabCompleter {
 
             case "sellChunk" -> {
                 if(!QuackClaim.economyEnabled) {
-                    player.sendMessage(Component.text("No economy registered. Please ask an admin to install one.", NamedTextColor.RED));
+                    player.sendMessage(Component.text("No economy registered. Ask an admin to install one.", NamedTextColor.RED));
                     return true;
                 }
 
+                if(!QuackConfig.ECOENABLED) {
+                    player.sendMessage(Component.text("Economy is disabled.", NamedTextColor.RED));
+                    return true;
+                }
                 if(!Teams.isPlayerInTeam(player.getUniqueId())) {
                     player.sendMessage(Component.text("You aren't in a team yet", NamedTextColor.RED));
                     return true;
@@ -372,7 +398,12 @@ public class TeamCommand implements CommandExecutor, TabCompleter {
 
             case "deposit" -> {
                 if(!QuackClaim.economyEnabled) {
-                    player.sendMessage(Component.text("No economy registered. Please ask an admin to install one.", NamedTextColor.RED));
+                    player.sendMessage(Component.text("No economy registered. Ask an admin to install one.", NamedTextColor.RED));
+                    return true;
+                }
+
+                if(!QuackConfig.ECOENABLED) {
+                    player.sendMessage(Component.text("Economy is disabled.", NamedTextColor.RED));
                     return true;
                 }
 
@@ -409,7 +440,12 @@ public class TeamCommand implements CommandExecutor, TabCompleter {
 
             case "withdraw" -> {
                 if(!QuackClaim.economyEnabled) {
-                    player.sendMessage(Component.text("No economy registered. Please ask an admin to install one.", NamedTextColor.RED));
+                    player.sendMessage(Component.text("No economy registered. Ask an admin to install one.", NamedTextColor.RED));
+                    return true;
+                }
+
+                if(!QuackConfig.ECOENABLED) {
+                    player.sendMessage(Component.text("Economy is disabled.", NamedTextColor.RED));
                     return true;
                 }
 
@@ -505,7 +541,7 @@ public class TeamCommand implements CommandExecutor, TabCompleter {
                 Team team = Teams.getTeamByPlayer(player.getUniqueId());
                 double amount = team.getMoney();
                 String currencyName = " " + ((amount > 1) ? QuackClaim.economy.currencyNamePlural() : QuackClaim.economy.currencyNameSingular());
-                player.sendMessage(Component.text("Withdrew ", NamedTextColor.GRAY)
+                player.sendMessage(Component.text("Balance: ", NamedTextColor.GRAY)
                         .append(Component.text(amount, NamedTextColor.GREEN))
                         .append(Component.text(currencyName, NamedTextColor.GOLD)));
 
@@ -594,9 +630,9 @@ public class TeamCommand implements CommandExecutor, TabCompleter {
                 String[] subArray =  Arrays.copyOfRange(args, 2, args.length);
                 String description = String.join(" ", subArray).trim();
 
-                if (description.length() > QuackClaim.MAXDESCLENGTH) {
+                if (description.length() > QuackConfig.MAXDESCLENGTH) {
                     player.sendMessage(Component.text("Your description is longer than ", NamedTextColor.RED)
-                            .append(Component.text(QuackClaim.MAXDESCLENGTH, NamedTextColor.GREEN)
+                            .append(Component.text(QuackConfig.MAXDESCLENGTH, NamedTextColor.GREEN)
                                     .append(Component.text(" characters!", NamedTextColor.RED))));
                     return true;
                 }
@@ -610,9 +646,9 @@ public class TeamCommand implements CommandExecutor, TabCompleter {
                 String[] subArray =  Arrays.copyOfRange(args, 2, args.length);
                 String name = String.join(" ", subArray).trim();
 
-                if (name.length() > QuackClaim.MAXNAMELENGTH) {
+                if (name.length() > QuackConfig.MAXNAMELENGTH) {
                     player.sendMessage(Component.text("Your name is longer than ", NamedTextColor.RED)
-                            .append(Component.text(QuackClaim.MAXNAMELENGTH, NamedTextColor.GREEN)
+                            .append(Component.text(QuackConfig.MAXNAMELENGTH, NamedTextColor.GREEN)
                                     .append(Component.text(" characters!", NamedTextColor.RED))));
                     return true;
                 }
@@ -641,6 +677,10 @@ public class TeamCommand implements CommandExecutor, TabCompleter {
 
             case "pardon" -> {
                 return Teams.getTeamByPlayer(((Player) sender).getUniqueId()).getBannedNames();
+            }
+
+            case "join" -> {
+                return Teams.getAllTeamNames();
             }
 
         }

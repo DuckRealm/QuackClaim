@@ -1,5 +1,6 @@
 package eu.duckrealm.quackclaim.commands;
 
+import eu.duckrealm.quackclaim.util.QuackConfig;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -10,13 +11,14 @@ import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.management.OperatingSystemMXBean;
 import java.util.List;
 
 public class MapCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         sender.sendMessage(Component.text("Visit the map at: ", NamedTextColor.GRAY)
-                .append(Component.text("http://localhost", NamedTextColor.GREEN).clickEvent(ClickEvent.openUrl("http://localhost:1234"))));
+                    .append(Component.text(QuackConfig.MAPADDRESS, NamedTextColor.GREEN).clickEvent(ClickEvent.openUrl(QuackConfig.MAPADDRESS))));
         return true;
     }
 

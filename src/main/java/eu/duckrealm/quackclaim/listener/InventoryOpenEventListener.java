@@ -20,6 +20,7 @@ public class InventoryOpenEventListener implements Listener {
 
     @EventHandler (ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void InventoryOpen (InventoryOpenEvent inventoryOpenEvent) {
+        if(inventoryOpenEvent.getInventory().getLocation() == null) return;
         Chunk chunk = inventoryOpenEvent.getInventory().getLocation().getChunk();
         InventoryType inventoryType = inventoryOpenEvent.getInventory().getType();
 

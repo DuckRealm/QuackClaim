@@ -11,9 +11,9 @@ import java.util.*;
 import static javax.swing.UIManager.put;
 
 public class Teams {
-    private static HashMap<UUID, Team> teams = new HashMap<>();
-    private static HashMap<String, UUID> teamsByNames = new HashMap<>();
-    private static HashMap<UUID, UUID> playerinTeam = new HashMap<>();
+    private static final HashMap<UUID, Team> teams = new HashMap<>();
+    private static final HashMap<String, UUID> teamsByNames = new HashMap<>();
+    private static final HashMap<UUID, UUID> playerinTeam = new HashMap<>();
 
     public static void putTeam(Team team) {
         teamsByNames.put(team.getTeamName(), team.getTeamID());
@@ -48,6 +48,9 @@ public class Teams {
         playerinTeam.remove(player);
     }
 
+    public static List<String> getAllTeamNames() {
+        return teamsByNames.keySet().stream().toList();
+    }
     public static void removeTeam(UUID teamID) {
         teamsByNames.remove(getTeam(teamID).getTeamName());
         teams.remove(teamID);
