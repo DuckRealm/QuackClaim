@@ -59,8 +59,12 @@ public class MapTile {
 
     public boolean save(){
         try {
-            String path = QuackClaim.instance.getDataFolder().getAbsolutePath() + "/tiles/" + world + "_" + (int) Math.round(getPosition().x) + "x" + (int) Math.round(getPosition().y) + ".png";
-            File file = new File(path);
+            String path = QuackClaim.instance.getDataFolder().getAbsolutePath() + "/tiles/img/" + world + "/";
+            String name = (int) Math.round(getPosition().x) + "x" + (int) Math.round(getPosition().y) + ".png";
+            new File(path).mkdirs();
+            File file = new File(path + name);
+
+
             ImageIO.write(image,"png", file);
             return true;
         } catch (IOException e) {

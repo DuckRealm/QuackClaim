@@ -18,7 +18,7 @@ import org.joml.Vector2d;
 public class ChunkRenderer {
 
     private List<Chunk> chunks;
-    private Map<Long, Integer> chunkHashes = new HashMap<>();
+    private final Map<Long, Integer> chunkHashes = new HashMap<>();
     public ChunkRenderer() {
         this.chunks = new ArrayList<>();
     }
@@ -46,6 +46,7 @@ public class ChunkRenderer {
 			tiles[i] = mapTile;
 			i++;
 		}
+
         chunks = new ArrayList<>();
         return tiles;
     }
@@ -135,7 +136,9 @@ public class ChunkRenderer {
         Vector2d chunkPos = new Vector2d(chunk.getX(), chunk.getZ());
         Team team = Teams.getTeamByChunk(chunk);
         if(team == null) team = QuackClaim.SERVERTEAM;
-        QuackClaim.tileInfo.put(ucid, new TileInfo(chunk.getInhabitedTime(), team.getTeamID(), score, chunkPos, chunk.getWorld().getName()));
+        TileInfo info = new TileInfo(chunk.getInhabitedTime(), team.getTeamID(), score, chunkPos, chunk.getWorld().getName(), ucid);
+        info.save();
+        QuackClaim.tileInfo.put(ucid, info);
         return new MapTile(image, score, chunk.getInhabitedTime(), chunkPos, chunk.getWorld().getName());
     }
     private boolean isWater(Material material) {

@@ -3,9 +3,13 @@ package eu.duckrealm.quackclaim.commands;
 import eu.duckrealm.quackclaim.QuackClaim;
 import eu.duckrealm.quackclaim.map.QRendererStats;
 import eu.duckrealm.quackclaim.util.*;
+import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickCallback;
+import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -172,6 +176,17 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
                 QuackClaim.ignoringClaims.remove(player.getUniqueId());
                 player.sendMessage(Component.text("No longer ignoring claims.", NamedTextColor.RED));
                 return true;
+            }
+
+            case "generateTileInfo" -> {
+                player.sendMessage(Component.text("This will take a lot of server performance!", NamedTextColor.RED, TextDecoration.BOLD));
+                player.sendMessage(Component.text("I know what I'm doing!", NamedTextColor.GREEN, TextDecoration.UNDERLINED).clickEvent(ClickEvent.callback((Audience audience) -> {
+                    audience.sendMessage(Component.text("Starting generation! Server might lag!", NamedTextColor.RED));
+
+                    QuackClaim.getInfoGenerationTask().runTaskAsynchronously(QuackClaim.instance);
+
+                    audience.sendMessage(Component.text("Finished generation!", NamedTextColor.GREEN, TextDecoration.BOLD));
+                })));
             }
 
             default -> player.sendMessage(Component.text("Not a valid option", NamedTextColor.RED));

@@ -3,8 +3,8 @@ package eu.duckrealm.quackclaim.util;
 import java.util.Objects;
 
 public class Region {
-    private int x;
-    private int y;
+    private final int x;
+    private final int y;
 
     public Region(int x, int y) {
         this.x = x;

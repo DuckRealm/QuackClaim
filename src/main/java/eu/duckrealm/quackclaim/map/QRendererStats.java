@@ -10,7 +10,7 @@ public class QRendererStats {
     public static long MinTime = Long.MAX_VALUE;
     public static long RenderedChunks = 0;
 
-    private static List<Long> doNotRender = new ArrayList<>();
+    private static final List<Long> doNotRender = new ArrayList<>();
 
     public static void addLoadException(long chunkKey) {
         doNotRender.add(chunkKey);

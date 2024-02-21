@@ -3,27 +3,22 @@ package eu.duckrealm.quackclaim;
 import com.sun.net.httpserver.HttpExchange;
 import eu.duckrealm.quackclaim.commands.*;
 import eu.duckrealm.quackclaim.listener.*;
-import eu.duckrealm.quackclaim.map.ChunkRenderer;
-import eu.duckrealm.quackclaim.map.MapTile;
-import eu.duckrealm.quackclaim.map.QRendererStats;
-import eu.duckrealm.quackclaim.map.TileInfo;
-import eu.duckrealm.quackclaim.util.Configuration;
-import eu.duckrealm.quackclaim.util.QuackConfig;
-import eu.duckrealm.quackclaim.util.Team;
-import eu.duckrealm.quackclaim.util.Teams;
+import eu.duckrealm.quackclaim.map.*;
+import eu.duckrealm.quackclaim.map.tasks.Renderer;
+import eu.duckrealm.quackclaim.util.*;
 import eu.duckrealm.quackclaim.webserver.WebServer;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
+import org.bukkit.World;
+import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.joml.Vector2d;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -31,7 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public final class QuackClaim extends JavaPlugin {
     public static final Team SERVERTEAM = new Team(new UUID(0,0), new UUID(0, 0));
     private final String version = getPluginMeta().getVersion();
-    public static QuackClaim instance;
+    public static JavaPlugin instance;
     public static Map<Long, TileInfo> tileInfo = new HashMap<>();
     public static Economy economy;
     public static boolean economyEnabled = false;
@@ -87,6 +82,7 @@ public final class QuackClaim extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new MovementEventListener(), this);
         Bukkit.getPluginManager().registerEvents(new PlayerInteractEventListener(), this);
         Bukkit.getPluginManager().registerEvents(new ChunkLoadEventListener(), this);
+        Bukkit.getPluginManager().registerEvents(new ProjectileListener(), this);
 
         getLogger().info("Registering commands...");
         Objects.requireNonNull(Bukkit.getPluginCommand("claim")).setExecutor(new ClaimCommand());
@@ -138,8 +134,54 @@ public final class QuackClaim extends JavaPlugin {
 
         if(QuackConfig.WEBENABLED) LaunchWebServer();
 
+        getLogger().info("Indexing tiles...");
+
+        indexTiles(tilesdir);
+
         getLogger().info("");
         getLogger().info("******************************************");
+
+        Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> {
+            new Renderer().run();
+        }, 0, 20 * 60);
+    }
+
+    private void indexTiles(File tilesdir) {
+        int loaded = 0;
+        int totalPNGs = 0;
+        for(File dir : tilesdir.listFiles()) {
+            if(!dir.isDirectory()) return;
+            for(File img : dir.listFiles()) {
+                totalPNGs++;
+
+                String name = img.getName().replaceAll(".png", "");
+                File tileInfoFile = new File(img.getAbsolutePath().replaceAll(".png", ".info"));
+                if(!tileInfoFile.exists()) continue;
+
+                try {
+                    YamlConfiguration config = new YamlConfiguration();
+
+                    config.load(tileInfoFile);
+
+                    long inhabitedTime = config.getLong("inhabitedTime", 0);
+                    UUID teamID = UUID.fromString(config.getString("teamID", QuackClaim.SERVERTEAM.getTeamID().toString()));
+                    int score = config.getInt("score", 0);
+                    Vector2d chunkPos = new Vector2d(config.getInt("chunkX", 0), config.getInt("chunkZ", 0));
+                    String world = config.getString("world", "world");
+                    Long ucid = config.getLong("ucid");
+
+                    TileInfo info = new TileInfo(inhabitedTime, teamID, score, chunkPos, world, ucid);
+
+                    tileInfo.put(ucid, info);
+                    loaded++;
+                } catch (IOException | InvalidConfigurationException e) {
+                    getLogger().severe(e.getMessage());
+                }
+            }
+        }
+
+        getLogger().info(String.format("Loaded %s/%s tile infos", loaded, totalPNGs));
+        if((double) loaded / totalPNGs < .90) getLogger().severe("Loaded less then 90% of infos. Please run /qadmin generateTileInfo");
     }
 
     private void LaunchWebServer() {
@@ -322,6 +364,61 @@ public final class QuackClaim extends JavaPlugin {
         List<String> players = new ArrayList<>();
         Bukkit.getOnlinePlayers().forEach(player -> players.add(player.getName()));
         return players;
+    }
+
+    public static BukkitRunnable getInfoGenerationTask() {
+        return new BukkitRunnable() {
+            @Override
+            public void run() {
+                File plugindir = instance.getDataFolder();
+                File tilesdir = new File(plugindir.getAbsolutePath() + File.separator + "tiles");
+
+                for(File img : tilesdir.listFiles()) {
+                    String name = img.getName().replaceAll(".png", "");
+
+                    File tileInfoFile = new File(img.getAbsolutePath().replaceAll(".png", ".info"));
+                    if (tileInfoFile.exists()) continue;
+
+                    String[] nameParts = name.split("_");
+                    String coordinatePart = nameParts[nameParts.length - 1];
+                    nameParts[nameParts.length - 1] = "";
+
+                    String worldName = String.join("_", nameParts);
+                    if (worldName.endsWith("_")) worldName = worldName.substring(0, worldName.length() - 1);
+                    int x = Integer.parseInt(coordinatePart.split("x")[0]);
+                    int z = Integer.parseInt(coordinatePart.split("x")[1]);
+
+                    World world = Bukkit.getWorld(worldName);
+                    Chunk chunk = world.getChunkAt(x, z);
+                    QRendererStats.addLoadException(chunk.getChunkKey());
+
+                    chunk.load(true);
+
+                    long ucid = chunk.getChunkKey() + chunk.getWorld().getName().hashCode();
+
+                    Vector2d chunkPos = new Vector2d(chunk.getX(), chunk.getZ());
+
+                    Team team = Teams.getTeamByChunk(chunk);
+                    if(team == null) team = QuackClaim.SERVERTEAM;
+
+                    int score = ChunkLoadAnalyzer.getChunkScore(chunk);
+
+                    TileInfo info = new TileInfo(chunk.getInhabitedTime(), team.getTeamID(), score, chunkPos, chunk.getWorld().getName(), ucid);
+
+                    chunk.unload();
+                    info.save();
+                    tileInfo.put(ucid, info);
+
+                    QRendererStats.removeLoadException(chunk.getChunkKey());
+
+                    try {
+                        wait(20);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        };
     }
     
 }

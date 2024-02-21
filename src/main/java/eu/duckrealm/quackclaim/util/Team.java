@@ -3,6 +3,7 @@ package eu.duckrealm.quackclaim.util;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
+import net.md_5.bungee.api.chat.BaseComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -123,7 +124,7 @@ public class Team {
     public List<String> getTrustedNames() {
         List<String> stringListTrusted = new ArrayList<>();
 
-        bannedPlayers.forEach((UUID uuid) -> {
+        trusted.forEach((UUID uuid) -> {
             stringListTrusted.add(Objects.requireNonNull(Bukkit.getOfflinePlayer(uuid)).getName());
         });
 
@@ -156,6 +157,8 @@ public class Team {
 
     public boolean trustPlayer(Player player) {
         if(trusted.contains(player.getUniqueId())) return false;
+        notifyMembers(Component.text(player.getName(), TextColor.fromHexString(getTeamColor()))
+                .append(Component.text(" is now part of your team!", NamedTextColor.WHITE)));
         maxClaimChunks += 10;
         trusted.add(player.getUniqueId());
         return true;
@@ -170,6 +173,8 @@ public class Team {
 
     public boolean trustPlayer(UUID player) {
         if(trusted.contains(player)) return false;
+        notifyMembers(Component.text(Bukkit.getOfflinePlayer(player).getName(), TextColor.fromHexString(getTeamColor()))
+                .append(Component.text(" is now part of your team!", NamedTextColor.WHITE)));
         maxClaimChunks += 10;
         trusted.add(player);
         return true;
@@ -362,5 +367,17 @@ public class Team {
         if(teamMoney < amount) return false;
         teamMoney -= amount;
         return true;
+    }
+
+    public void notifyMembers(Component... text) {
+        trusted.forEach((UUID id) -> {
+            Player player = Bukkit.getPlayer(id);
+
+            if (player != null && player.isOnline()) Arrays.stream(text).toList().forEach(player::sendMessage);
+        });
+
+        Player player = Bukkit.getPlayer(owner);
+
+        if (player != null && player.isOnline()) Arrays.stream(text).toList().forEach(player::sendMessage);
     }
 }

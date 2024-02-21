@@ -12,7 +12,7 @@ import static javax.swing.UIManager.put;
 
 public class ChunkLoadAnalyzer {
 
-    private static HashMap<Material, Integer> blockEntityScore = new HashMap<>(){
+    private static final HashMap<Material, Integer> blockEntityScore = new HashMap<>(){
         {
             put(Material.CHEST, 1);
             put(Material.TRAPPED_CHEST, 2);
@@ -26,7 +26,7 @@ public class ChunkLoadAnalyzer {
         }
     };
 
-    private static HashMap<EntityType, Integer> livingEntityScore = new HashMap<>() {
+    private static final HashMap<EntityType, Integer> livingEntityScore = new HashMap<>() {
         {
             put(EntityType.PLAYER, 15);
             put(EntityType.ZOMBIE, 2);

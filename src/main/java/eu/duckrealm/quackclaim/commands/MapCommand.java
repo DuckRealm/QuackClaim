@@ -11,13 +11,14 @@ import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.management.OperatingSystemMXBean;
 import java.util.List;
 
 public class MapCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         sender.sendMessage(Component.text("Visit the map at: ", NamedTextColor.GRAY)
-                .append(Component.text(QuackConfig.MAPADDRESS, NamedTextColor.GREEN).clickEvent(ClickEvent.openUrl(QuackConfig.MAPADDRESS))));
+                    .append(Component.text(QuackConfig.MAPADDRESS, NamedTextColor.GREEN).clickEvent(ClickEvent.openUrl(QuackConfig.MAPADDRESS))));
         return true;
     }
 

@@ -80,14 +80,19 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
                     location.add(i * 16, 0, j * 16);
                     long chunkKey = location.getChunk().getChunkKey();
 
-                    if (QuackClaim.claims.containsKey(chunkKey)) {
+                    if (QuackClaim.claims.containsKey(chunkKey) && !QuackClaim.claims.get(chunkKey).equals(team.getTeamID())) {
                         Team claimedByTeam = Teams.getTeam(QuackClaim.claims.get(player.getChunk().getChunkKey()));
                         player.sendMessage(Component.text(location.getChunk().getX())
                                 .append(Component.text(" "))
                                 .append(Component.text(location.getChunk().getZ()))
                                 .append(Component.text(" is already claimed by ", NamedTextColor.RED))
                                 .append(claimedByTeam.getTeamComponent()));
+                        return true;
                     }
+
+                    team.addClaimedChunk();
+                    QuackClaim.claims.put(chunkKey, team.getTeamID());
+
                 }
             }
         }
