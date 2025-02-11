@@ -136,11 +136,6 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
                 player2.sendMessage(Component.text("You have been reset by an admin!", NamedTextColor.RED));
             }
 
-            case "chunkPerformance" -> {
-                player.sendMessage(Component.text("This chunk gets a load score of: ")
-                        .append(Component.text(ChunkLoadAnalyzer.getChunkScore(player.getChunk()), NamedTextColor.GREEN)));
-            }
-
             case "reload" -> {
                 QuackConfig.initialize();
                 player.sendMessage(Component.text("Reloaded Configs", NamedTextColor.GREEN));
@@ -241,7 +236,7 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         List<String> editOptionsBool = Arrays.stream(new String[] {"pvp", "explosions", "freeToJoin"}).toList();
-        if (args.length == 1) return Arrays.stream(new String[] { "save", "edit", "list", "delete", "chunkPerformance", "resetPlayer", "chunkRenderTime", "reload" }).toList();
+        if (args.length == 1) return Arrays.stream(new String[] { "save", "edit", "list", "delete", "resetPlayer", "chunkRenderTime", "reload" }).toList();
         switch(args[0]) {
             case "edit" -> {
                 if (args.length > 2 && editOptionsBool.contains(args[1])) return Arrays.stream(new String[] { "on", "off" }).toList();
